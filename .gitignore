@@ -21,3 +21,5 @@ kind
 .#*
 bob-tests-local.strest.yaml
 docker-compose-local.yaml
+.cpcache/
+.nrepl-port

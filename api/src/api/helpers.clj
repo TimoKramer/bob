@@ -1,4 +1,4 @@
-(ns vertx-clj.helpers
+(ns api.helpers
   (:require [jsonista.core :as json])
   (:import (java.util.function Function)
            (io.vertx.core Verticle

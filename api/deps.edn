@@ -13,5 +13,5 @@
  {:test    {:extra-deps {lambdaisland/kaocha {:mvn/version "1.0-612"}}
             :main-opts  ["-m" "kaocha.runner"]}
   :uberjar {:extra-deps {seancorfield/depstar {:mvn/version "1.0.94"}}
-            :main-opts  ["-m" "hf.depstar.uberjar" "entities.jar"
-                         "-C" "-S" "-m" "entities.main"]}}}
+            :main-opts  ["-m" "hf.depstar.uberjar" "api.jar"
+                         "-C" "-S" "-m" "api.core"]}}}

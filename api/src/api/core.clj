@@ -1,7 +1,7 @@
-(ns vertx-clj.core
+(ns api.core
   (:require [taoensso.timbre :as log]
-            [vertx-clj.handlers :as h]
-            [vertx-clj.helpers :as hp])
+            [api.handlers :as h]
+            [api.helpers :as hp])
   (:import (io.vertx.core Vertx
                           VertxOptions Handler)
            (io.vertx.ext.web.api.contract.openapi3 OpenAPI3RouterFactory))

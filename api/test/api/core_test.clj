@@ -1,6 +1,6 @@
-(ns vertx-clj.core-test
+(ns api.core-test
   (:require [clojure.test :refer :all]
-            [vertx-clj.core :refer :all]))
+            [api.core :refer :all]))
 
 (deftest a-test
   (testing "FIXME, I fail."

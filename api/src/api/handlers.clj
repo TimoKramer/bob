@@ -1,7 +1,7 @@
-(ns vertx-clj.handlers
+(ns api.handlers
   (:require [clojure.java.io :as io]
             [jsonista.core :as json]
-            [vertx-clj.helpers :as h])
+            [api.helpers :as h])
   (:import (io.vertx.core Handler)
            (io.vertx.ext.web RoutingContext)
            (io.vertx.ext.web.api RequestParameters)))
