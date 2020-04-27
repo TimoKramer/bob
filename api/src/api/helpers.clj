@@ -1,5 +1,6 @@
 (ns api.helpers
-  (:require [jsonista.core :as json])
+  (:require [jsonista.core :as json]
+            [taoensso.timbre :as log])
   (:import (java.util.function Function)
            (io.vertx.core Verticle
                           AbstractVerticle
@@ -48,7 +49,8 @@
   [^Promise p]
   (reify Handler
     (handle [_ result]
-      (let [r ^AsyncResult result]
+      (let [r ^AsyncResult result
+            _ (log/debugf "AsyncResult failed? %s %s" (str (.failed result)) (str result))]
         (if (.succeeded r)
           (.complete p r)
           (.fail p (.cause r)))))))
@@ -66,9 +68,10 @@
   [^Future prev-future next-fn & args]
   (let [f (reify Function
             (apply [_ future]
-              (let [f ^Future future]
+              (let [f ^Future future
+                    _ (log/debugf "then results in %s" (str f))]
                 (if (.succeeded f)
                   (apply unit next-fn (conj (vec args)
                                             (.result f)))
-                  (throw (.cause f))))))]
+                  (throw (.fail (.cause f)))))))]
     (.compose prev-future f)))

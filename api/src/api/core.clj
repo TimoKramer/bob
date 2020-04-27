@@ -24,12 +24,16 @@
   (.addHandlerByOperationId route-factory
                             "PipelineCreate"
                             h/pipeline-create-handler)
-  (.addHandlerByOperationId route-factory
-                            "PipelineArtifactFetch"
-                            h/pipeline-artifact-handler)
   (.addFailureHandlerByOperationId route-factory
                                    "PipelineCreate"
                                    h/failure-handler)
+  (.addHandlerByOperationId route-factory
+                            "PipelineArtifactFetch"
+                            h/pipeline-artifact-handler)
+  (.addHandlerByOperationId route-factory
+                            "PipelineList"
+                            h/pipeline-list-handler)
+
   (-> vertx
       .createHttpServer
       (.requestHandler (.getRouter route-factory))

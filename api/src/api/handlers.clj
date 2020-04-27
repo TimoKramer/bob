@@ -30,7 +30,7 @@
                         .body
                         .toString
                         (json/read-value h/mapper))]
-       (log/infof "Creating pipeline: %s %s %s" group name pipeline))))
+       "Creating pipeline: %s %s %s" group name pipeline)))
 
 (def failure-handler
   (h/->json-handler
@@ -44,3 +44,7 @@
           .response
           (.putHeader "content-type" "application/tar")
           (.sendFile "test.tar.gz")))))
+
+(def pipeline-list-handler
+  (h/->json-handler
+    (constantly "Listing Pipelines")))

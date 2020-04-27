@@ -13,7 +13,7 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with Bob. If not, see <http://www.gnu.org/licenses/>.
 
-all: test compile
+all: test compile run
 
 .PHONY: test
 test:
@@ -21,6 +21,9 @@ test:
 
 compile:
 	clojure -Spom && clojure -A:uberjar
+
+run:
+	clojure -m api.core -J-Dhsqldb.reconfig_logging=false -J-Dvertxweb.environment=dev
 
 clean:
 	rm -rf .cpcache entities.jar pom.xml
