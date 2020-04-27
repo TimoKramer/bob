@@ -789,6 +789,9 @@ components:
           items:
             $ref: "#/components/schemas/Step"
           description: The list of steps to be executed sequentially
+        image:
+          type: string
+          description: The container image to use
         vars:
           type: object
           description: The key-value pairs of environment variables

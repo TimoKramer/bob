@@ -7,6 +7,8 @@
            (io.vertx.ext.web.api.contract.openapi3 OpenAPI3RouterFactory))
   (:gen-class))
 
+(log/set-level! :debug)
+
 (defn make-route-factory
   [api-spec vertx handler]
   (OpenAPI3RouterFactory/create vertx api-spec handler))
@@ -25,6 +27,9 @@
   (.addHandlerByOperationId route-factory
                             "PipelineArtifactFetch"
                             h/pipeline-artifact-handler)
+  (.addFailureHandlerByOperationId route-factory
+                                   "PipelineCreate"
+                                   h/failure-handler)
   (-> vertx
       .createHttpServer
       (.requestHandler (.getRouter route-factory))

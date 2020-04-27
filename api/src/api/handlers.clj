@@ -1,5 +1,6 @@
 (ns api.handlers
   (:require [clojure.java.io :as io]
+            [taoensso.timbre :as log]
             [jsonista.core :as json]
             [api.helpers :as h])
   (:import (io.vertx.core Handler)
@@ -29,7 +30,12 @@
                         .body
                         .toString
                         (json/read-value h/mapper))]
-       (println group name pipeline))))
+       (log/infof "Creating pipeline: %s %s %s" group name pipeline))))
+
+(def failure-handler
+  (h/->json-handler
+    #(log/warnf (-> (.failure %)
+                     (.getMessage)))))
 
 (def pipeline-artifact-handler
   (reify Handler
