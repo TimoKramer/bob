@@ -23,19 +23,31 @@
 
 (def pipeline-create-handler
   (h/->json-handler
-    #(let [params   (.get ^RoutingContext % "parsedParameters")
-           group    (h/get-path-param params "group")
-           name     (h/get-path-param params "name")
+    #(let [params (.get ^RoutingContext % "parsedParameters")
+           group (h/get-path-param params "group")
+           name (h/get-path-param params "name")
            pipeline (-> ^RequestParameters params
                         .body
                         .toString
                         (json/read-value h/mapper))]
-       "Creating pipeline: %s %s %s" group name pipeline)))
+       (h/respond :info {:message "Creating pipeline"
+                         :group group
+                         :name name
+                         :pipeline pipeline}))))
+
+(def pipeline-delete-handler
+  (h/->json-handler
+    #(let [params (.get ^RoutingContext % "parsedParameters")
+           group (h/get-path-param params "group")
+           name (h/get-path-param params "name")]
+       (h/respond :info {:message "Deleting pipeline"
+                         :group group
+                         :name name}))))
 
 (def failure-handler
   (h/->json-handler
-    #(log/warnf (-> (.failure %)
-                     (.getMessage)))))
+    #(h/respond :warn (-> (.failure %)
+                          (.getMessage)))))
 
 (def pipeline-artifact-handler
   (reify Handler

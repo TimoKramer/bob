@@ -85,3 +85,8 @@
           (log/info "Bob is up!")
           (do (log/errorf "Starting Vertx failed: %s" (.getMessage (.cause f)))
               (throw (.cause f))))))))
+
+(defn respond
+  [level content]
+  (log/logf level (str content))
+  content)

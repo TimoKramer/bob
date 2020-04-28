@@ -30,6 +30,9 @@
                                    "PipelineCreate"
                                    h/failure-handler)
   (.addHandlerByOperationId route-factory
+                            "PipelineDelete"
+                            h/pipeline-delete-handler)
+  (.addHandlerByOperationId route-factory
                             "PipelineArtifactFetch"
                             h/pipeline-artifact-handler)
   (.addHandlerByOperationId route-factory
