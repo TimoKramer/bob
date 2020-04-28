@@ -3,7 +3,9 @@
             [api.handlers :as h]
             [api.helpers :as hp])
   (:import (io.vertx.core Vertx
-                          VertxOptions Handler)
+                          VertxOptions
+                          Handler
+                          Future)
            (io.vertx.ext.web.api.contract.openapi3 OpenAPI3RouterFactory))
   (:gen-class))
 
@@ -48,5 +50,9 @@
                                                  (.onComplete (hp/->handler %)))
                                   :on-stop  #(constantly (println "yalla"))})]
     (.deployVerticle vertx server (reify Handler
-                                    (handle [_ _]
-                                      (log/info "Bob is up!"))))))
+                                    (handle [_ future]
+                                      (let [f ^Future future]
+                                        (if (.succeeded f)
+                                          (log/info "Bob is up!")
+                                          (do (log/errorf "Starting Vertx failed: %s" (str (.cause f)))
+                                              (throw (.cause f))))))))))
