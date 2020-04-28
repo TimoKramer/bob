@@ -75,3 +75,13 @@
                                             (.result f)))
                   (throw (.fail (.cause f)))))))]
     (.compose prev-future f)))
+
+(defn finally
+  []
+  (reify Handler
+    (handle [_ future]
+      (let [f ^Future future]
+        (if (.succeeded f)
+          (log/info "Bob is up!")
+          (do (log/errorf "Starting Vertx failed: %s" (.getMessage (.cause f)))
+              (throw (.cause f))))))))

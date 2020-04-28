@@ -49,10 +49,4 @@
                                                  (hp/then make-server 7777 "0.0.0.0" vertx)
                                                  (.onComplete (hp/->handler %)))
                                   :on-stop  #(constantly (println "yalla"))})]
-    (.deployVerticle vertx server (reify Handler
-                                    (handle [_ future]
-                                      (let [f ^Future future]
-                                        (if (.succeeded f)
-                                          (log/info "Bob is up!")
-                                          (do (log/errorf "Starting Vertx failed: %s" (str (.cause f)))
-                                              (throw (.cause f))))))))))
+    (.deployVerticle vertx server (hp/finally))))
