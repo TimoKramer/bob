@@ -30,7 +30,7 @@
                         .body
                         .toString
                         (json/read-value h/mapper))]
-       (h/respond :info {:message "Creating pipeline"
+       (h/respond {:message "Creating pipeline"
                          :group group
                          :name name
                          :pipeline pipeline}))))
@@ -40,14 +40,15 @@
     #(let [params (.get ^RoutingContext % "parsedParameters")
            group (h/get-path-param params "group")
            name (h/get-path-param params "name")]
-       (h/respond :info {:message "Deleting pipeline"
+       (h/respond {:message "Deleting pipeline"
                          :group group
                          :name name}))))
 
 (def failure-handler
   (h/->json-handler
-    #(h/respond :warn (-> (.failure %)
-                          (.getMessage)))))
+    #(h/fail (-> (.failure %)
+                          (.getMessage)))
+    400))
 
 (def pipeline-artifact-handler
   (reify Handler
@@ -60,3 +61,10 @@
 (def pipeline-list-handler
   (h/->json-handler
     (constantly "Listing Pipelines")))
+
+(def resource-provider-registration-handler
+  (h/->json-handler
+    #(let [params (.get ^RoutingContext % "parsedParameters")
+           _      (log/debugf "Registering Resource Provider with params: %s" (str params))
+           ]
+       (h/respond {:message "Registering Resource Provider"}))))

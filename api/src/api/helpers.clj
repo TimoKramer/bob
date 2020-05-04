@@ -16,15 +16,18 @@
     {:decode-key-fn true}))
 
 (defn ->json-handler
-  [action-fn]
-  (reify Handler
-    (handle [_ routing-ctx]
-      (-> ^RoutingContext routing-ctx
-          .response
-          (.putHeader "content-type" "application/json")
-          (.end (json/write-value-as-string
-                  {:message (or (action-fn routing-ctx)
-                                "Ok")}))))))
+  ([action-fn]
+   (->json-handler action-fn 200))
+  ([action-fn status-code]
+   (reify Handler
+     (handle [_ routing-ctx]
+       (-> ^RoutingContext routing-ctx
+           .response
+           (.setStatusCode status-code)
+           (.putHeader "content-type" "application/json")
+           (.end (json/write-value-as-string
+                   {:message (or (action-fn routing-ctx)
+                                 "Ok")})))))))
 
 (defn get-path-param
   [^RequestParameters params ^String name & {:keys [as]}]
@@ -54,6 +57,16 @@
         (if (.succeeded r)
           (.complete p r)
           (.fail p (.cause r)))))))
+
+(defn respond
+  [content]
+  (log/info content)
+  content)
+
+(defn fail
+  [content]
+  (log/warn content)
+  content)
 
 (defn unit
   ^Future
@@ -85,8 +98,3 @@
           (log/info "Bob is up!")
           (do (log/errorf "Starting Vertx failed: %s" (.getMessage (.cause f)))
               (throw (.cause f))))))))
-
-(defn respond
-  [level content]
-  (log/logf level (str content))
-  content)

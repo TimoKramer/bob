@@ -33,11 +33,17 @@
                             "PipelineDelete"
                             h/pipeline-delete-handler)
   (.addHandlerByOperationId route-factory
+                            "PipelineList"
+                            h/pipeline-list-handler)
+  (.addHandlerByOperationId route-factory
                             "PipelineArtifactFetch"
                             h/pipeline-artifact-handler)
   (.addHandlerByOperationId route-factory
-                            "PipelineList"
-                            h/pipeline-list-handler)
+                            "ResourceProviderRegistration"
+                            h/resource-provider-registration-handler)
+  (.addFailureHandlerByOperationId route-factory
+                                   "ResourceProviderRegistration"
+                                   h/failure-handler)
 
   (-> vertx
       .createHttpServer
