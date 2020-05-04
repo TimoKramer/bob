@@ -76,7 +76,7 @@
                   (throw (.fail (.cause f)))))))]
     (.compose prev-future f)))
 
-(defn finally
+(defn result
   []
   (reify Handler
     (handle [_ future]
