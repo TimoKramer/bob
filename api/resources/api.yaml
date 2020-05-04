@@ -168,7 +168,7 @@ paths:
                     "message": "Ok"
                   }
 
-  /pipeline/start/groups/{group}/names/{name}:
+  /pipelines/start/groups/{group}/names/{name}:
     post:
       operationId: PipelineStart
       summary: Starts a pipeline
@@ -211,7 +211,7 @@ paths:
                     "message": "Error starting pipeline: <some error message>"
                   }
 
-  /pipeline/stop/groups/{group}/names/{name}/number/{number}:
+  /pipelines/stop/groups/{group}/names/{name}/number/{number}:
     post:
       operationId: PipelineStop
       summary: Stops a pipeline
@@ -261,7 +261,7 @@ paths:
                     "message": "Failed to stop pipeline: <some error message>"
                   }
 
-  /pipeline/logs/groups/{group}/names/{name}/number/{number}/offset/{offset}/lines/{lines}:
+  /pipelines/logs/groups/{group}/names/{name}/number/{number}/offset/{offset}/lines/{lines}:
     get:
       operationId: PipelineLogs
       summary: Fetches the logs of a pipeline
@@ -329,7 +329,7 @@ paths:
                     "message": "Failed to fetch logs for pipeline group:name: <some error message>"
                   }
 
-  /pipeline/status/groups/{group}/names/{name}/number/{number}:
+  /pipelines/status/groups/{group}/names/{name}/number/{number}:
     get:
       operationId: PipelineStatus
       summary: Fetches the status of the pipeline
@@ -542,7 +542,7 @@ paths:
                 attrs:
                   $ref: "#/components/schemas/ResourceProviderAttributes"
             examples:
-              attributes:
+              attrs:
                 value: {
                   "url": "http://my-resource-provider:8000"
                 }

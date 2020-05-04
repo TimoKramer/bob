@@ -33,17 +33,47 @@
                             "PipelineDelete"
                             h/pipeline-delete-handler)
   (.addHandlerByOperationId route-factory
-                            "PipelineList"
-                            h/pipeline-list-handler)
+                            "PipelineStart"
+                            h/pipeline-start-handler)
+  (.addHandlerByOperationId route-factory
+                            "PipelineStop"
+                            h/pipeline-stop-handler)
+  (.addHandlerByOperationId route-factory
+                            "PipelineLogs"
+                            h/pipeline-logs-handler)
+  (.addHandlerByOperationId route-factory
+                            "PipelineStatus"
+                            h/pipeline-status-handler)
   (.addHandlerByOperationId route-factory
                             "PipelineArtifactFetch"
                             h/pipeline-artifact-handler)
+  (.addHandlerByOperationId route-factory
+                            "PipelineList"
+                            h/pipeline-list-handler)
   (.addHandlerByOperationId route-factory
                             "ResourceProviderRegistration"
                             h/resource-provider-registration-handler)
   (.addFailureHandlerByOperationId route-factory
                                    "ResourceProviderRegistration"
                                    h/failure-handler)
+  (.addHandlerByOperationId route-factory
+                            "ResourceProviderDelete"
+                            h/resource-provider-delete-handler)
+  (.addHandlerByOperationId route-factory
+                            "ResourceProviderList"
+                            h/resource-provider-list-handler)
+  (.addHandlerByOperationId route-factory
+                            "ArtifactStoreRegistration"
+                            h/artifact-store-registration-handler)
+  (.addFailureHandlerByOperationId route-factory
+                                   "ArtifactStoreRegistration"
+                                   h/failure-handler)
+  (.addHandlerByOperationId route-factory
+                            "ArtifactStoreDelete"
+                            h/artifact-store-delete-handler)
+  (.addHandlerByOperationId route-factory
+                            "ArtifactStoreList"
+                            h/artifact-store-list-handler)
 
   (-> vertx
       .createHttpServer
