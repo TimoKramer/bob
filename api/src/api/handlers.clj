@@ -106,7 +106,6 @@
   (h/->json-handler
     (constantly "Listing Pipelines")))
 
-; TODO $.attrs: is missing but it is required
 (def resource-provider-registration-handler
   (h/->json-handler
     #(let [params (.get ^RoutingContext % "parsedParameters")
@@ -126,7 +125,6 @@
     #(let [params (.get ^RoutingContext % "parsedParameters")]
        (h/respond {:message "Listing Resource Providers"}))))
 
-; TODO $.attrs: is missing but it is required
 (def artifact-store-registration-handler
   (h/->json-handler
     #(let [params (.get ^RoutingContext % "parsedParameters")

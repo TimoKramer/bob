@@ -536,8 +536,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - attrs
               properties:
                 attrs:
                   $ref: "#/components/schemas/ResourceProviderAttributes"
@@ -636,8 +634,6 @@ paths:
           application/json:
             schema:
               type: object
-              required:
-                - attrs
               properties:
                 attrs:
                   $ref: "#/components/schemas/ArtifactStoreAttributes"
