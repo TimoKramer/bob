@@ -21,6 +21,7 @@
   ([action-fn status-code]
    (reify Handler
      (handle [_ routing-ctx]
+       (log/debugf "JsonHandler RoutingContext Body %s Path %s" (.getBodyAsString routing-ctx) (.normalisedPath routing-ctx))
        (-> ^RoutingContext routing-ctx
            .response
            (.setStatusCode status-code)
@@ -29,9 +30,22 @@
                    {:message (or (action-fn routing-ctx)
                                  "Ok")})))))))
 
+(defn ->handler
+  [^Promise p]
+  (reify Handler
+    (handle [_ result]
+      (let [r ^AsyncResult result
+            _ (log/debugf "AsyncResult failed? %s %s" (str (.failed result)) (str result))]
+        (if (.succeeded r)
+          (.complete p r)
+          (.fail p (.cause r)))))))
+
 (defn get-path-param
   [^RequestParameters params ^String name & {:keys [as]}]
-  (let [param (.pathParameter params name)]
+  (let [param (try
+                (.pathParameter params name)
+                (catch Exception e
+                  (log/warnf "Could not retrieve paramerter %s" name)))]
     (case as
       :int (.getInteger param)
       (.getString param))))
@@ -47,16 +61,6 @@
     (stop [promise]
       (when on-stop
         (on-stop promise)))))
-
-(defn ->handler
-  [^Promise p]
-  (reify Handler
-    (handle [_ result]
-      (let [r ^AsyncResult result
-            _ (log/debugf "AsyncResult failed? %s %s" (str (.failed result)) (str result))]
-        (if (.succeeded r)
-          (.complete p r)
-          (.fail p (.cause r)))))))
 
 (defn respond
   [content]

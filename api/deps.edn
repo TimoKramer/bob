@@ -6,6 +6,7 @@
   io.vertx/vertx-web                     {:mvn/version "3.9.0"}
   io.vertx/vertx-web-api-contract        {:mvn/version "3.9.0"}
   io.vertx/vertx-pg-client               {:mvn/version "3.9.0"}
+  com.stuartsierra/component             {:mvn/version "1.0.0"}
   metosin/jsonista                       {:mvn/version "0.2.5"}
   com.taoensso/timbre                    {:mvn/version "4.10.0"}
   com.fzakaria/slf4j-timbre              {:mvn/version "0.3.19"}}
