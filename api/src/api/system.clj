@@ -110,3 +110,17 @@
   []
   (alter-var-root #'system
                   (constantly (component/start system-map))))
+
+(defn stop
+  []
+  (alter-var-root #'system
+                  #(when %
+                     (component/stop %))))
+
+(defn reset
+  []
+  (stop)
+  (start))
+
+(comment
+  (reset))
