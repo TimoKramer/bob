@@ -82,7 +82,7 @@
   (verticle [this]))
 
 (defrecord Verticle
-  []
+  [verticle]
   component/Lifecycle
   (start [this]
     (let [vertx (Vertx/vertx (-> (VertxOptions.)
@@ -92,13 +92,16 @@
                                                    (.onComplete (hp/->handler %)))
                                     :on-stop  #(constantly (println "yalla"))})]
       (.deployVerticle vertx verticle (hp/result))
-      (assoc this :conn verticle)))
+      (assoc this :verticle verticle)))
   (stop [this]
-    (log/info "Stopping Verticle")
-    (assoc this :conn nil))
+    (log/infof "Stopping Verticle %s" (str (type (:verticle this))))
+    this
+    (do (log/debugf "This conn %s" verticle)
+        (.stop verticle)
+        (assoc this :verticle nil)))
   IVerticle
   (verticle [this]
-    (:conn this)))
+    (:verticle this)))
 
 (def system-map
   (component/system-map
@@ -123,4 +126,8 @@
   (start))
 
 (comment
+  (constantly (println "yalla"))
+  (start)
+  (stop)
+  (:verticle system)
   (reset))
