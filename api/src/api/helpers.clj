@@ -2,9 +2,7 @@
   (:require [jsonista.core :as json]
             [taoensso.timbre :as log])
   (:import (java.util.function Function)
-           (io.vertx.core Verticle
-                          AbstractVerticle
-                          Promise
+           (io.vertx.core Promise
                           AsyncResult
                           Future
                           Handler)
@@ -49,18 +47,6 @@
     (case as
       :int (.getInteger param)
       (.getString param))))
-
-(defn make-verticle
-  ^Verticle
-  [{:keys [on-start on-stop]}]
-  (proxy [AbstractVerticle] []
-    (start [promise]
-      (when on-start
-        (on-start promise)))
-
-    (stop [promise]
-      (when on-stop
-        (on-stop promise)))))
 
 (defn respond
   [content]

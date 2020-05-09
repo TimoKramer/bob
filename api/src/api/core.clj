@@ -1,13 +1,7 @@
 (ns api.core
   (:require [taoensso.timbre :as log]
-            [api.system :as system]
-            [api.handlers :as h]
-            [api.helpers :as hp])
-  (:import (io.vertx.core Vertx
-                          VertxOptions
-                          Handler
-                          Future)
-           (io.vertx.ext.web.api.contract.openapi3 OpenAPI3RouterFactory))
+            [api.system :as system])
+
   (:gen-class))
 
 (log/set-level! :debug)
