@@ -58,9 +58,9 @@
       (when on-start
         (on-start promise)))
 
-    (stop []
+    (stop [promise]
       (when on-stop
-        (on-stop)))))
+        (on-stop promise)))))
 
 (defn respond
   [content]

@@ -78,34 +78,35 @@
       (.requestHandler (.getRouter route-factory))
       (.listen port host handler)))
 
-(defprotocol IVerticle
-  (verticle [this]))
+(defprotocol IServer
+  (verticle [this])
+  (vertx [this]))
 
-(defrecord Verticle
-  [verticle]
+(defrecord Server
+  [vertx]
   component/Lifecycle
   (start [this]
     (let [vertx (Vertx/vertx (-> (VertxOptions.)
                                  (.setHAEnabled true)))
           verticle (hp/make-verticle {:on-start #(-> (hp/unit make-route-factory "/api.yaml" vertx)
                                                    (hp/then make-server 7777 "0.0.0.0" vertx)
-                                                   (.onComplete (hp/->handler %)))
-                                    :on-stop  #(constantly (println "yalla"))})]
+                                                   (.onComplete (hp/->handler %)))})]
       (.deployVerticle vertx verticle (hp/result))
-      (assoc this :verticle verticle)))
+      (log/debugf "VERTX::::: %s" vertx)
+      (assoc this :vertx vertx)))
   (stop [this]
     (log/infof "Stopping Verticle %s" (str (type (:verticle this))))
     this
-    (do (log/debugf "This conn %s" verticle)
-        (.stop verticle)
-        (assoc this :verticle nil)))
-  IVerticle
-  (verticle [this]
-    (:verticle this)))
+    (do (log/debugf "This vertx %s" vertx)
+        (.close vertx)
+        (assoc this :vertx nil)))
+  IServer
+  (vertx [this]
+    (:vertx [this])))
 
 (def system-map
   (component/system-map
-    :verticle (map->Verticle {})))
+    :vertx (map->Server {})))
 
 (defonce system nil)
 
@@ -129,5 +130,5 @@
   (constantly (println "yalla"))
   (start)
   (stop)
-  (:verticle system)
+  (:vertx system)
   (reset))
