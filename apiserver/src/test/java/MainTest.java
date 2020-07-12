@@ -70,7 +70,6 @@ class APIServerTest {
         }));
     }
 
-/*
     @DisplayName("➡️ A nested test with customized lifecycle")
     @Nested
     class CustomLifecycleTest {
@@ -87,56 +86,79 @@ class APIServerTest {
         @Test
         @DisplayName("⬆️ Deploy APIServer")
         void deployAPIServer(VertxTestContext testContext) {
-            ConfigRetriever.create(vertx).getConfig(config -> {
-                if (config.succeeded()) {
-                    final var conf = config.result();
-                    final var rmqConfig = conf.getJsonObject("rabbitmq");
-                    final var cruxConfig = conf.getJsonObject("crux");
-                    final var httpConfig = conf.getJsonObject("http");
+            final var apiSpec = "/bob/api.yaml";
+            final var httpHost = "localhost";
+            final var httpPort = 17777;
 
-                    final var apiSpec = httpConfig.getString("apiSpec", "/bob/api.yaml");
-                    final var httpHost = httpConfig.getString("host", "localhost");
-                    final var httpPort = httpConfig.getInteger("port", 7777);
+            final var rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
+            final var queue = RabbitMQClient.create(vertx, rabbitConfig);
 
-                    final var queue = RabbitMQClient.create(vertx, new RabbitMQOptions(rmqConfig));
-                    final var client = WebClient.create(vertx, new WebClientOptions(cruxConfig));
+            final var cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
+            final var crux = WebClient.create(vertx, cruxConfig);
 
-                    vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, client), testContext.succeeding(id ->
-                            testContext.completeNow()));
-                }
-            });
+            final var clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
+            final var client = WebClient.create(vertx, clientConfig);
+
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id ->
+                    testContext.completeNow()));
         }
 
         @Test
-        @DisplayName("🛂 Make a HTTP client request to APIServer")
+        @DisplayName("🛂 Fetch api.yaml from APIServer")
         void httpRequest(VertxTestContext testContext) {
-            ConfigRetriever.create(vertx).getConfig(config -> {
-                if (config.succeeded()) {
-                    final var conf = config.result();
-                    final var rmqConfig = conf.getJsonObject("rabbitmq");
-                    final var cruxConfig = conf.getJsonObject("crux");
-                    final var httpConfig = conf.getJsonObject("http");
+            final var apiSpec = "/bob/api.yaml";
+            final var httpHost = "localhost";
+            final var httpPort = 17777;
 
-                    final var apiSpec = httpConfig.getString("apiSpec", "/bob/api.yaml");
-                    final var httpHost = httpConfig.getString("host", "localhost");
-                    final var httpPort = httpConfig.getInteger("port", 7777);
+            final var rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
+            final var queue = RabbitMQClient.create(vertx, rabbitConfig);
 
-                    final var queue = RabbitMQClient.create(vertx, new RabbitMQOptions(rmqConfig));
-                    final var client = WebClient.create(vertx, new WebClientOptions(cruxConfig));
+            final var cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
+            final var crux = WebClient.create(vertx, cruxConfig);
 
-                    vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, client), testContext.succeeding(id ->
-                            testContext.completeNow()));
-                    client.get(7777, "localhost", "/can-we-build-it")
-                            .as(BodyCodec.string())
-                            .send(testContext.succeeding(resp -> {
-                                testContext.verify(() -> {
-                                    assertThat(resp.statusCode()).isEqualTo(200);
-                                    assertThat(resp.body()).contains("Yo!");
-                                    testContext.completeNow();
-                                });
-                            }));
-                }
-            });
+            final var clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
+            final var client = WebClient.create(vertx, clientConfig);
+
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+                client.get("/api.yaml")
+                        .as(BodyCodec.string())
+                        .send(testContext.succeeding(resp -> {
+                            testContext.verify(() -> {
+                                assertThat(resp.statusCode()).isEqualTo(200);
+                                assertThat(resp.body()).contains("title: Bob the Builder");
+                                testContext.completeNow();
+                            });
+                        }));
+            }));
+        }
+
+        @Test
+        @DisplayName("Create Test Pipeline")
+        void createPipeline(VertxTestContext testContext) {
+            final var apiSpec = "/bob/api.yaml";
+            final var httpHost = "localhost";
+            final var httpPort = 17777;
+
+            final var rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
+            final var queue = RabbitMQClient.create(vertx, rabbitConfig);
+
+            final var cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
+            final var crux = WebClient.create(vertx, cruxConfig);
+
+            final var clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
+            final var client = WebClient.create(vertx, clientConfig);
+
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+                client.get("/api.yaml")
+                        .as(BodyCodec.string())
+                        .send(testContext.succeeding(resp -> {
+                            testContext.verify(() -> {
+                                assertThat(resp.statusCode()).isEqualTo(200);
+                                assertThat(resp.body()).contains("title: Bob the Builder");
+                                testContext.completeNow();
+                            });
+                        }));
+            }));
         }
 
         @AfterEach
@@ -144,5 +166,4 @@ class APIServerTest {
             vertx.close();
         }
     }
-*/
 }
