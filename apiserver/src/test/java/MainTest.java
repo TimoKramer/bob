@@ -15,9 +15,9 @@
  * along with Bob. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.ext.web.codec.BodyCodec;
@@ -26,7 +26,6 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import io.vertx.rabbitmq.RabbitMQClient;
 import io.vertx.rabbitmq.RabbitMQOptions;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -57,12 +56,12 @@ class APIServerTest {
         vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
             deploymentCheckpoint.flag();
             for (int i = 0; i < 10; i++) {
-                client.get("/can-we-build-it")
+                client.get("/api.yaml")
                         .as(BodyCodec.string())
                         .send(testContext.succeeding(resp -> {
                             testContext.verify(() -> {
                                 assertThat(resp.statusCode()).isEqualTo(200);
-                                assertThat(resp.body()).contains("Yes we can!");
+                                assertThat(resp.body()).contains("title: Bob the Builder");
                                 requestCheckpoint.flag();
                             });
                         }));
@@ -76,6 +75,14 @@ class APIServerTest {
 
         Vertx vertx;
 
+        String apiSpec = "/bob/api.yaml";
+        String httpHost = "localhost";
+        Integer httpPort = 17777;
+
+        RabbitMQOptions rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
+        WebClientOptions cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
+        WebClientOptions clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
+
         @BeforeEach
         void prepare() {
             vertx = Vertx.vertx(new VertxOptions()
@@ -86,17 +93,8 @@ class APIServerTest {
         @Test
         @DisplayName("⬆️ Deploy APIServer")
         void deployAPIServer(VertxTestContext testContext) {
-            final var apiSpec = "/bob/api.yaml";
-            final var httpHost = "localhost";
-            final var httpPort = 17777;
-
-            final var rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-
-            final var cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
             final var crux = WebClient.create(vertx, cruxConfig);
-
-            final var clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
             final var client = WebClient.create(vertx, clientConfig);
 
             vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id ->
@@ -104,60 +102,64 @@ class APIServerTest {
         }
 
         @Test
-        @DisplayName("🛂 Fetch api.yaml from APIServer")
+        @DisplayName("🛂 Test Health Check of APIServer")
         void httpRequest(VertxTestContext testContext) {
-            final var apiSpec = "/bob/api.yaml";
-            final var httpHost = "localhost";
-            final var httpPort = 17777;
-
-            final var rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-
-            final var cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
             final var crux = WebClient.create(vertx, cruxConfig);
-
-            final var clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
             final var client = WebClient.create(vertx, clientConfig);
 
             vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
-                client.get("/api.yaml")
+                client.get("/can-we-build-it")
                         .as(BodyCodec.string())
-                        .send(testContext.succeeding(resp -> {
-                            testContext.verify(() -> {
-                                assertThat(resp.statusCode()).isEqualTo(200);
-                                assertThat(resp.body()).contains("title: Bob the Builder");
-                                testContext.completeNow();
-                            });
-                        }));
+                        .send(ar -> {
+                            if (ar.failed()) {
+                                testContext.failNow(ar.cause());
+                            } else {
+                                testContext.verify(() -> {
+                                    assertThat(ar.result().statusCode()).isEqualTo(200);
+                                    assertThat(ar.result().body()).contains("Yes we can!");
+                                    testContext.completeNow();
+                                });
+                            }
+                        });
             }));
+            //    if (ar.succeeded()) {
+            //        testContext.verify(() -> {
+            //            assertThat(ar.result().body()).isEqualTo("Ok");
+            //            assertThat(ar.result().statusCode()).isEqualTo(200);
+            //            testContext.completeNow();
+            //        });
+            //    } else {
+            //        if (testContext.failed()) {
+            //            throw testContext.causeOfFailure();
+            //        }
+            //    }
+            //});
         }
 
         @Test
         @DisplayName("Create Test Pipeline")
         void createPipeline(VertxTestContext testContext) {
-            final var apiSpec = "/bob/api.yaml";
-            final var httpHost = "localhost";
-            final var httpPort = 17777;
-
-            final var rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-
-            final var cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
             final var crux = WebClient.create(vertx, cruxConfig);
-
-            final var clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
             final var client = WebClient.create(vertx, clientConfig);
 
             vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
-                client.get("/api.yaml")
-                        .as(BodyCodec.string())
-                        .send(testContext.succeeding(resp -> {
-                            testContext.verify(() -> {
-                                assertThat(resp.statusCode()).isEqualTo(200);
-                                assertThat(resp.body()).contains("title: Bob the Builder");
-                                testContext.completeNow();
-                            });
-                        }));
+                vertx.fileSystem().readFile("src/test/resources/createComplexPipeline.payload.json", file -> {
+                    if (file.succeeded()) {
+                        JsonObject json = new JsonObject(file.result());
+                        System.out.println(json.toString());
+                        client.post("/pipelines/groups/dev/names/test")
+                                .putHeader("Content-Type", "application/json")
+                                .putHeader("content-length", "52")
+                                .sendJsonObject(json, testContext.succeeding(response -> testContext.verify(() -> {
+                                    assertThat(response.bodyAsJsonObject().getString("message")).isEqualTo("Successfully Created Pipeline dev test");
+                                    assertThat(response.statusCode()).isEqualTo(200);
+                                    testContext.completeNow();
+                                })));
+                    }
+
+                });
             }));
         }
 

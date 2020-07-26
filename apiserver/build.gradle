@@ -64,7 +64,11 @@ compileJava {
 
 test {
     useJUnitPlatform()
-    maxHeapSize = '1G'
+    testLogging {
+        exceptionFormat = 'full'
+        events 'FAILED', 'SKIPPED', 'PASSED'
+        showStandardStreams = true
+    }
 }
 
 shadowJar {

@@ -19,6 +19,7 @@ import com.rabbitmq.client.AMQP;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.rabbitmq.RabbitMQClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,28 +58,37 @@ public class Handlers {
 
     public static void healthCheckHandler(RoutingContext routingContext, RabbitMQClient queue, WebClient crux) {
         // TODO use better health check
-        crux.get("/").followRedirects(true).send(it -> {
-            if (it.failed()) {
+        crux.get(7778, "localhost", "/_crux/index.html")
+                .expect(ResponsePredicate.SC_OK)
+                .followRedirects(true).send(it -> {
+            if (it.succeeded()) {
+                logger.debug("Health check succeeded for CruxDB!");
+            } else {
                 logger.error("Health check failed for CruxDB!");
                 routingContext.fail(it.cause());
-            } else {
-                logger.debug("Health check succeeded for CruxDB!");
             }
         });
         // TODO use better health check
-        crux.get(15672, "localhost", "/api/nodes").send(it -> {
-            if (it.failed()) {
+        crux.get(15672, "localhost", "/api/nodes")
+                .expect(ResponsePredicate.SC_OK)
+                .basicAuthentication("guest", "guest").send(it -> {
+            if (it.succeeded()) {
+                logger.debug("Health check succeeded for RabbitMQ!");
+            } else {
                 logger.error("Health check failed for RabbitMQ!");
                 routingContext.fail(it.cause());
-            } else {
-                logger.debug("Health check succeeded for RabbitMQ!");
             }
         });
 
-        toJsonResponse(routingContext, "Yes we can! \uD83D\uDD28 \uD83D\uDD28");
+        if (routingContext.failed()) {
+            toJsonResponse(routingContext, "Failed Health Check!", 503);
+        } else {
+            toJsonResponse(routingContext, "Yes we can! \uD83D\uDD28 \uD83D\uDD28");
+        }
     }
 
     public static void pipelineCreateHandler(RoutingContext routingContext, RabbitMQClient queue) {
+        System.out.println("Creating Pipeline: ");
         final var params = routingContext.request().params();
         final var group = params.get("group");
         final var name = params.get("name");
