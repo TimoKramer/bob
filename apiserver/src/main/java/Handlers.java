@@ -15,22 +15,21 @@
  * along with Bob. If not, see <http://www.gnu.org/licenses/>.
  */
 
-import clojure.java.api.Clojure;
-import clojure.lang.IFn;
-import clojure.lang.Keyword;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.rabbitmq.client.AMQP;
-import crux.api.Crux;
 import crux.api.ICruxAPI;
 import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.api.contract.openapi3.OpenAPI3RouterFactory;
 import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.predicate.ResponsePredicate;
 import io.vertx.rabbitmq.RabbitMQClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,13 +37,13 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.time.Duration;
 import java.util.Map;
 
 import static java.lang.String.format;
 
 public class Handlers {
     private final static Logger logger = LoggerFactory.getLogger(Handlers.class.getName());
+/*
     private final static ICruxAPI node;
     private final static IFn toJson;
     private final static ObjectMapper objectMapper = new ObjectMapper();
@@ -75,6 +74,7 @@ public class Handlers {
     public static <T> T objectify(Object data, Class<T> cls) throws JsonProcessingException {
         return objectMapper.readValue((String) toJson.invoke(data), cls);
     }
+*/
 
     private static void toJsonResponse(RoutingContext routingContext, Object content) {
         toJsonResponse(routingContext, content, 200);
@@ -98,29 +98,21 @@ public class Handlers {
         });
     }
 
-    public static void healthCheckHandler(RoutingContext routingContext, RabbitMQClient queue, WebClient crux) {
+    public static void healthCheckHandler(RoutingContext routingContext, RabbitMQClient queue) {
         // TODO use better health check
+        final var foo = awaitEvent(h -> Main.node.status());
         Promise<HttpResponse<Buffer>> cruxCheck = Promise.promise();
-        crux.get(7779, "localhost", "/")
-                .expect(ResponsePredicate.SC_OK)
-                .followRedirects(true)
-                .send(it -> {
-                    if (it.succeeded()) {
-                        logger.debug("Health check succeeded for CruxDB!");
-                        cruxCheck.complete();
-                    } else {
-                        logger.error("Health check failed for CruxDB!");
-                        cruxCheck.fail(it.cause());
-                    }
-                });
+
         // TODO use better health check
         Promise<HttpResponse<Buffer>> rabbitCheck = Promise.promise();
         if (queue.isConnected()) {
             logger.debug("Health check succeeded for RabbitMQ!");
+            cruxCheck.complete();
             rabbitCheck.complete();
         } else {
             logger.error("Health check failed for RabbitMQ!");
-            rabbitCheck.fail("foo");
+            cruxCheck.fail("Health check failed for Crux!");
+            rabbitCheck.fail("Health check failed for RabbitMQ!");
         }
 
         CompositeFuture.all(rabbitCheck.future(), cruxCheck.future()).onSuccess(it -> {
@@ -180,7 +172,7 @@ public class Handlers {
         toJsonResponse(routingContext, format("Successfully Stopped Pipeline %s %s %s", group, name, number));
     }
 
-    public static void pipelineLogsHandler(RoutingContext routingContext, WebClient crux) {
+    public static void pipelineLogsHandler(RoutingContext routingContext) {
         final var params = routingContext.request().params();
         final var group = params.get("group");
         final var name = params.get("name");
@@ -198,7 +190,7 @@ public class Handlers {
         toJsonResponse(routingContext, format("Logs for Pipeline %s %s %s with Offset %s and Lines %s", group, name, number, offset, lines));
     }
 
-    public static void pipelineStatusHandler(RoutingContext routingContext, WebClient crux) {
+    public static void pipelineStatusHandler(RoutingContext routingContext) {
         final var params = routingContext.request().params();
         final var group = params.get("group");
         final var name = params.get("name");
@@ -219,10 +211,10 @@ public class Handlers {
         toJsonResponse(routingContext, "Sending File completed!");
     }
 
-    public static void pipelineListHandler(RoutingContext routingContext, WebClient crux) {
+    public static void pipelineListHandler(RoutingContext routingContext) {
         final var query = "{:find [e] :where [[e :type :pipeline]]}";
 
-        toJsonResponse(routingContext, node.db().query(query));
+        toJsonResponse(routingContext, Main.node.db().query(query));
     }
 
     public static void resourceProviderCreateHandler(RoutingContext routingContext, RabbitMQClient queue) {
@@ -247,9 +239,10 @@ public class Handlers {
         toJsonResponse(routingContext, format("Deleted Resource Provider %s", name));
     }
 
-    public static void resourceProviderListHandler(RoutingContext routingContext, WebClient crux) {
-        // TODO DB interaction
-        toJsonResponse(routingContext, crux.get("/"));
+    public static void resourceProviderListHandler(RoutingContext routingContext) {
+        final var query = "{:find [e] :where [[e :type :resource-provider]]}";
+
+        toJsonResponse(routingContext, Main.node.db().query(query));
     }
 
     public static void artifactStoreCreateHandler(RoutingContext routingContext, RabbitMQClient queue) {
@@ -274,21 +267,10 @@ public class Handlers {
         toJsonResponse(routingContext, format("Deleted Artifact Store %s", name));
     }
 
-    public static void artifactStoreListHandler(RoutingContext routingContext, WebClient crux) {
-        crux.get("/").send(it -> {
-            final String msg;
+    public static void artifactStoreListHandler(RoutingContext routingContext) {
+        final var query = "{:find [e] :where [[e :type :artifact-store]]}";
 
-            if (it.succeeded()) {
-                final var result = it.result();
-                logger.info(format("SUCCESS! %s", result));
-                msg = format("Artifact Store List: %s", result);
-            } else {
-                logger.error(format("MEEEH! %s", it.cause().getMessage()));
-                msg = format("Failed retrieving Artifact Store list: %s", it.cause().getMessage());
-            }
-
-            toJsonResponse(routingContext, msg);
-        });
+        toJsonResponse(routingContext, Main.node.db().query(query));
     }
 
     public static void apiSpecHandler(RoutingContext routingContext) {

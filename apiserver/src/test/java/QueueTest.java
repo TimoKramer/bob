@@ -34,7 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("Testing the Queue interaction")
 @ExtendWith(VertxExtension.class)
-class APIServerTest {
+class QueueTest {
 
     @Test
     @DisplayName("🚀 Deploy a HTTP service verticle and make 10 requests")
@@ -48,13 +48,10 @@ class APIServerTest {
         final var rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
         final var queue = RabbitMQClient.create(vertx, rabbitConfig);
 
-        final var cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
-        final var crux = WebClient.create(vertx, cruxConfig);
-
         final var clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
         final var client = WebClient.create(vertx, clientConfig);
 
-        vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+        vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
             deploymentCheckpoint.flag();
             for (int i = 0; i < 10; i++) {
                 client.get("/api.yaml")
@@ -82,7 +79,6 @@ class APIServerTest {
         Integer httpPort = 17777;
 
         RabbitMQOptions rabbitConfig = new RabbitMQOptions().setHost("localhost").setPort(5673);
-        WebClientOptions cruxConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(7779);
         WebClientOptions clientConfig = new WebClientOptions().setDefaultHost("localhost").setDefaultPort(17777);
 
         @BeforeEach
@@ -97,10 +93,8 @@ class APIServerTest {
         @DisplayName("⬆️ Deploy APIServer")
         void deployAPIServer(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
-            final var client = WebClient.create(vertx, clientConfig);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id ->
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id ->
                     testContext.completeNow()));
         }
 
@@ -109,10 +103,9 @@ class APIServerTest {
         @DisplayName("🛂 Test Health Check of APIServer")
         void httpRequest(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 client.get("/can-we-build-it")
                         .as(BodyCodec.string())
                         .send(ar -> {
@@ -134,11 +127,10 @@ class APIServerTest {
         @DisplayName("Create Entities Queue")
         void createEntitiesQueue(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.queueDeclare("entities", true, false, false, it -> {
                     if (it.succeeded()) {
@@ -155,13 +147,12 @@ class APIServerTest {
         @DisplayName("Create Test Pipeline")
         void createPipeline(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 vertx.fileSystem().readFile("src/test/resources/createComplexPipeline.payload.json", file -> {
                     if (file.succeeded()) {
@@ -192,14 +183,13 @@ class APIServerTest {
         @DisplayName("Consume Create Messages From Queue")
         void consumeMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 vertx.fileSystem().readFile("src/test/resources/createComplexPipeline.payload.json", file -> {
                     if (file.succeeded()) {
@@ -237,13 +227,12 @@ class APIServerTest {
         @DisplayName("Delete Test Pipeline")
         void deletePipeline(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 for (int i = 0; i < 10; i++) {
                     client.delete("/pipelines/groups/dev/names/test")
@@ -267,14 +256,13 @@ class APIServerTest {
         @DisplayName("Consume Delete Messages From Queue")
         void consumeDeleteMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.basicConsumer("entities", (it -> {
                     if (it.succeeded()) {
@@ -307,13 +295,12 @@ class APIServerTest {
         @DisplayName("Start Test Pipeline")
         void startPipeline(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 for (int i = 0; i < 10; i++) {
                     client.post("/pipelines/start/groups/dev/names/test")
@@ -337,14 +324,13 @@ class APIServerTest {
         @DisplayName("Consume Start Messages From Queue")
         void consumeStartMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.basicConsumer("entities", (it -> {
                     if (it.succeeded()) {
@@ -377,13 +363,12 @@ class APIServerTest {
         @DisplayName("Stop Test Pipeline")
         void stopPipeline(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 for (int i = 0; i < 10; i++) {
                     client.post("/pipelines/stop/groups/dev/names/test/number/42")
@@ -407,14 +392,13 @@ class APIServerTest {
         @DisplayName("Consume Stop Messages From Queue")
         void consumeStopMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.basicConsumer("entities", (it -> {
                     if (it.succeeded()) {
@@ -447,13 +431,12 @@ class APIServerTest {
         @DisplayName("Create Resource Provider")
         void createResourceProvider(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 JsonObject jsonBody = new JsonObject().put("url", "http://foobar:5678");
                 for (int i = 0; i < 10; i++) {
@@ -478,14 +461,13 @@ class APIServerTest {
         @DisplayName("Consume Create Resource Provider Messages From Queue")
         void consumeCreateResourceProviderMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.basicConsumer("entities", (it -> {
                     if (it.succeeded()) {
@@ -518,13 +500,12 @@ class APIServerTest {
         @DisplayName("Delete Resource Provider")
         void deleteResourceProvider(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 JsonObject jsonBody = new JsonObject().put("url", "http://foobar:5678");
                 for (int i = 0; i < 10; i++) {
@@ -549,14 +530,13 @@ class APIServerTest {
         @DisplayName("Consume Delete Resource Provider Messages From Queue")
         void consumeDeleteResourceProviderMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.basicConsumer("entities", (it -> {
                     if (it.succeeded()) {
@@ -589,13 +569,12 @@ class APIServerTest {
         @DisplayName("Create Artifact Store")
         void createArtifactStore(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 JsonObject jsonBody = new JsonObject().put("url", "http://foobar:5678");
                 for (int i = 0; i < 10; i++) {
@@ -620,14 +599,13 @@ class APIServerTest {
         @DisplayName("Consume Create Artifact Store Messages From Queue")
         void consumeCreateArtifactStoreMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.basicConsumer("entities", (it -> {
                     if (it.succeeded()) {
@@ -660,13 +638,12 @@ class APIServerTest {
         @DisplayName("Delete Resource Provider")
         void deleteArtifactStore(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
             final var client = WebClient.create(vertx, clientConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint requestsServed = testContext.checkpoint(10);
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 JsonObject jsonBody = new JsonObject().put("url", "http://foobar:5678");
                 for (int i = 0; i < 10; i++) {
@@ -691,14 +668,13 @@ class APIServerTest {
         @DisplayName("Consume Delete Artifact Store Messages From Queue")
         void consumeDeleteArtifactStoreMessages(VertxTestContext testContext) {
             final var queue = RabbitMQClient.create(vertx, rabbitConfig);
-            final var crux = WebClient.create(vertx, cruxConfig);
 
             Checkpoint serverStarted = testContext.checkpoint();
             Checkpoint queueStarted = testContext.checkpoint();
             Checkpoint responsesReceived = testContext.checkpoint(10);
             Checkpoint consumerStopped = testContext.checkpoint();
 
-            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), testContext.succeeding(id -> {
+            vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), testContext.succeeding(id -> {
                 serverStarted.flag();
                 queue.basicConsumer("entities", (it -> {
                     if (it.succeeded()) {

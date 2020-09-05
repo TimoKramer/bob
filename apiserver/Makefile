@@ -17,7 +17,7 @@ all: setup test compile
 
 .PHONY: setup teardown test
 setup:
-	#docker network create bob-net --subnet 10.0.76.0/24
+	docker network create bob-net --subnet 10.0.76.0/24
 	docker run \
 		--detach \
 		--name bob-storage \
@@ -27,38 +27,39 @@ setup:
 		--publish 5432:5432 \
 		--network bob-net \
 		postgres:alpine
-	#docker run \
-	#	--detach \
-	#	--name bob-queue \
-	#	--publish 5672:5672 \
-	#	--publish 15672:15672 \
-	#	--network bob-net \
-	#	rabbitmq:3-management-alpine
+	docker run \
+		--detach \
+		--name bob-queue \
+		--publish 5672:5672 \
+		--publish 15672:15672 \
+		--network bob-net \
+		rabbitmq:3-management-alpine
 
 teardown:
-	docker rm -f bob-storage bob-queue bob-db
+	docker rm -f bob-storage bob-queue
 	docker network rm bob-net
 
 test:
-	#docker network create bob-test-net --subnet 10.0.77.0/24
+	docker network create bob-test-net --subnet 10.0.77.0/24
 	docker run \
-		-d \
+		--detach \
 		--name bob-test-storage \
-		-e POSTGRES_DB=bob-test \
+		-e POSTGRES_DB=bob \
 		-e POSTGRES_USER=bob \
 		-e POSTGRES_PASSWORD=bob \
+		--publish 5432:5432 \
 		--network bob-test-net \
 		postgres:alpine
 	docker run \
-		-d \
+		--detach \
 		--name bob-test-queue \
-		-p 5673:5672 \
+		--publish 5673:5672 \
 		--network bob-test-net \
 		rabbitmq:3-alpine
-	#sleep 7 # TODO: Find a better way to wait till things come up.
-	#gradle test
-	#docker kill bob-test-storage bob-test-queue bob-test-db && docker rm bob-test-storage bob-test-queue bob-test-db
-	#docker network rm bob-net
+	sleep 7 # TODO: Find a better way to wait till things come up.
+	gradle test --debug || true
+	#docker kill bob-test-storage bob-test-queue && docker rm bob-test-storage bob-test-queue
+	#docker network rm bob-test-net
 
 compile:
 	gradle shadowJar

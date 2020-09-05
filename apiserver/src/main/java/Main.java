@@ -15,20 +15,58 @@
  * along with Bob. If not, see <http://www.gnu.org/licenses/>.
  */
 
+import clojure.java.api.Clojure;
+import clojure.lang.IFn;
+import clojure.lang.Keyword;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import crux.api.Crux;
+import crux.api.ICruxAPI;
 import io.vertx.config.ConfigRetriever;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.rabbitmq.RabbitMQClient;
 import io.vertx.rabbitmq.RabbitMQOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
+import java.util.Map;
+
 import static java.lang.String.format;
 
 public class Main {
     private final static Logger logger = LoggerFactory.getLogger(Main.class.getName());
+    private final static ObjectMapper objectMapper = new ObjectMapper();
+    protected final static ICruxAPI node;
+    protected final static IFn toJson;
+
+    static {
+        Clojure.var("clojure.core", "require")
+                .invoke(Clojure.read("jsonista.core"));
+
+        final var nodeConfig = """
+                {:crux.node/topology [crux.jdbc/topology]
+                 :crux.jdbc/dbtype   "postgresql"
+                 :crux.jdbc/dbname   "bob"
+                 :crux.jdbc/host     "localhost"
+                 :crux.jdbc/port     5432
+                 :crux.jdbc/user     "bob"
+                 :crux.jdbc/password "bob"}
+                """;
+
+        toJson = Clojure.var("jsonista.core", "write-value-as-string");
+        node = Crux.startNode((Map<Keyword, ?>) datafy(nodeConfig));
+        node.sync(Duration.ofSeconds(30)); // Become consistent for a max of 30s
+    }
+
+    public static Object datafy(String raw) {
+        return Clojure.read(raw);
+    }
+
+    public static <T> T objectify(Object data, Class<T> cls) throws JsonProcessingException {
+        return objectMapper.readValue((String) toJson.invoke(data), cls);
+    }
 
     public static void main(String[] args) {
         final var vertx = Vertx.vertx(new VertxOptions().setHAEnabled(true));
@@ -37,7 +75,6 @@ public class Main {
             if (config.succeeded()) {
                 final var conf = config.result();
                 final var rmqConfig = conf.getJsonObject("rabbitmq");
-                final var cruxConfig = conf.getJsonObject("crux");
                 final var httpConfig = conf.getJsonObject("http");
 
                 final var apiSpec = httpConfig.getString("apiSpec", "/bob/api.yaml");
@@ -45,9 +82,8 @@ public class Main {
                 final var httpPort = httpConfig.getInteger("port", 7777);
 
                 final var queue = RabbitMQClient.create(vertx, new RabbitMQOptions(rmqConfig));
-                final var crux = WebClient.create(vertx, new WebClientOptions(cruxConfig));
 
-                vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue, crux), v -> {
+                vertx.deployVerticle(new APIServer(apiSpec, httpHost, httpPort, queue), v -> {
                     if (v.succeeded())
                         logger.info(format("Deployed on verticle: %s", v.result()));
                     else
