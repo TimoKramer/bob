@@ -1,0 +1,11 @@
+name: bob
+runtime: nodejs
+description: AWS RDS and Bob example
+template:
+  config:
+    aws:region:
+      description: The AWS region to deploy into
+      default: eu-central-1
+    bob:dbPassword:
+      description: The desired RDS password
+      secret: true
