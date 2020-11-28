@@ -30,7 +30,7 @@ repositories {
     maven { url "https://clojars.org/repo" }
 }
 
-def vertxVersion = "4.0.0-milestone5"
+def vertxVersion = "4.0.0.CR2"
 def cruxVersion = "20.09-1.12.1-beta"
 
 dependencies {

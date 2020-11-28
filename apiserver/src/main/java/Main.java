@@ -52,13 +52,13 @@ public class Main {
                 final var apiHost = conf.getString("BOB_API_HOST", "0.0.0.0");
                 final var apiPort = conf.getInteger("BOB_API_PORT", 7777);
                 final var healthCheckFreq = conf.getInteger("BOB_HEALTH_CHECK_FREQ", 5000);
-                final var connectionRetryAttempts = conf.getInteger("BOB_CONNECTION_RETRY_ATTEMPTS", 10);
-                final var connectionRetryDelay = conf.getInteger("BOB_CONNECTION_RETRY_DELAY", 2000);
+                final var reconnectAttempts = conf.getInteger("BOB_CONNECTION_RETRY_ATTEMPTS", 10);
+                final var reconnectInterval= conf.getInteger("BOB_CONNECTION_RETRY_DELAY", 2000);
 
                 final ICruxAPI node;
                 try {
                     node = new DB(
-                        storageUrl, storageUser, storagePassword, connectionRetryAttempts, connectionRetryDelay
+                        storageUrl, storageUser, storagePassword, reconnectAttempts, reconnectInterval
                     ).node;
                 } catch (ConnectException e) {
                     return Future.failedFuture(e);
@@ -70,8 +70,8 @@ public class Main {
                         .setUri(queueUrl)
                         .setUser(queueUser)
                         .setPassword(queuePassword)
-                        .setConnectionRetries(connectionRetryAttempts)
-                        .setConnectionRetryDelay(connectionRetryDelay)
+                        .setReconnectAttempts(reconnectAttempts)
+                        .setReconnectInterval(reconnectInterval)
                 );
 
                 return vertx.deployVerticle(new APIServer(
